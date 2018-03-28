@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+
+    >
+
+    <SwitchPreferenceCompat
+        android:id="@+id/pref_night_mode"
+        android:defaultValue="@bool/pref_night_mode_default"
+        android:key="@string/pref_night_mode_key"
+        android:title="@string/pref_night_mode_label" />
+
+
+    <SwitchPreferenceCompat
+        android:id="@+id/pref_linear_layout"
+        android:defaultValue="@bool/pref_linear_layout_default"
+        android:key="@string/pref_linear_layout_key"
+        android:title="@string/pref_linear_layout_layout" />
+
+</PreferenceScreen>

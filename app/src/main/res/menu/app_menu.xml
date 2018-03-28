@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_increase_size"
+        android:title="@string/increase_size" />
+    <item
+        android:id="@+id/action_decrease_size"
+        android:title="@string/decrease_size" />
+    <item
+        android:id="@+id/action_hide"
+        android:title="@string/hide" />
+    <item
+        android:id="@+id/action_uninstall"
+        android:title="@string/uninstall" />
+    <item
+        android:id="@+id/action_info"
+        android:title="@string/info" />
+</menu>

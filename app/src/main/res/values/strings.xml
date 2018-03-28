@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">Text Launcher</string>
+    <string name="hide">Hide</string>
+    <string name="show">Show</string>
+    <string name="uninstall">Uninstall</string>
+    <string name="info">App Info</string>
+    <string name="increase_size">Increase Size</string>
+    <string name="decrease_size">Decrease Size</string>
+    <string name="hidden_apps">Hidden Apps</string>
+    <string name="pref_night_mode_label">Night Mode</string>
+    <string name="close_small">close</string>
+    <string name="clear_small">clear</string>
+    <string name="pref_linear_layout_layout">Linear Layout</string>
+    <string name="pref_night_mode_key">pref_night_mode</string>
+    <string name="pref_linear_layout_key">pref_linear_layout</string>
+    <string name="color_almost_black">#E6000000</string>
+    <string name="color_almost_white">#E6FFFFFF</string>
+
+</resources>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <bool name="pref_night_mode_default">false</bool>
+    <bool name="pref_linear_layout_default">false</bool>
+
+</resources>
