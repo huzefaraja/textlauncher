@@ -90,15 +90,15 @@ class MainActivity : AppCompatActivity(), AppsAdapter.AppClickListener, TextWatc
 
     }
 
-    override fun onDrawerSlide(drawerView: View?, slideOffset: Float) {
+    override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
     }
 
-    override fun onDrawerClosed(drawerView: View?) {
+    override fun onDrawerClosed(drawerView: View) {
     }
 
     private var areHiddenAppsLoaded: Boolean = false
 
-    override fun onDrawerOpened(drawerView: View?) {
+    override fun onDrawerOpened(drawerView: View) {
         if (drawerView == rightDrawer && !areHiddenAppsLoaded)
             loadHiddenApps()
     }
@@ -207,6 +207,7 @@ class MainActivity : AppCompatActivity(), AppsAdapter.AppClickListener, TextWatc
                                 view.x.roundToInt(), view.y.roundToInt(),
                                 view.width, view.height).toBundle())
             appsAdapter?.notifyDataSetChanged()
+            closeKeyboard()
         }
     }
 
@@ -295,7 +296,7 @@ class MainActivity : AppCompatActivity(), AppsAdapter.AppClickListener, TextWatc
 
         Launcher.getInstance(this).preferences.registerOnSharedPreferenceChangeListener(this)
 
-        leftDrawer.setOnTouchListener { v, event -> true }
+        leftDrawer.setOnTouchListener { _, _ -> true }
 
     }
 
@@ -368,36 +369,40 @@ class MainActivity : AppCompatActivity(), AppsAdapter.AppClickListener, TextWatc
     }
 
     class LauncherSettingsFragment : PreferenceFragmentCompat(), SharedPreferences.OnSharedPreferenceChangeListener {
-        
+
         override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
 
-            if (getString(R.string.pref_night_mode_key).equals(key)) {
-                val isNightMode = sharedPreferences?.getBoolean(key, resources.getBoolean(R.bool.pref_night_mode_default))
-                if (isNightMode != null)
-                    if (isNightMode) {
-                        // TODO()
-                    } else {
-                        // TODO()
-                    }
-            }
+            if (isAdded)
+                if (getString(R.string.pref_night_mode_key).equals(key)) {
+                    val isNightMode = sharedPreferences?.getBoolean(key, resources.getBoolean(R.bool.pref_night_mode_default))
+                    if (isNightMode != null)
+                        if (isNightMode) {
+                            // TODO()
+                        } else {
+                            // TODO()
+                        }
+                }
 
         }
 
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-            preferenceManager.sharedPreferencesName = Constants.SHARED_PREFERENCES_LAUNCHER_SETTINGS
-            addPreferencesFromResource(R.xml.launcher_preferences_fragment)
-            preferenceManager.sharedPreferences
+            if (isAdded) {
+                preferenceManager.sharedPreferencesName = Constants.SHARED_PREFERENCES_LAUNCHER_SETTINGS
+                addPreferencesFromResource(R.xml.launcher_preferences_fragment)
+                preferenceManager.sharedPreferences
+            }
         }
 
         override fun onCreate(savedInstanceState: Bundle?) {
             super.onCreate(savedInstanceState)
-            preferenceScreen.sharedPreferences
-                    .registerOnSharedPreferenceChangeListener(this)
+            if (isAdded)
+                preferenceScreen.sharedPreferences
+                        .registerOnSharedPreferenceChangeListener(this)
         }
 
         override fun onDestroy() {
             super.onDestroy()
-            preferenceScreen.sharedPreferences
+            if (isAdded) preferenceScreen.sharedPreferences
                     .unregisterOnSharedPreferenceChangeListener(this)
         }
 

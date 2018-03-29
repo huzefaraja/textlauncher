@@ -66,14 +66,14 @@ class AppsAdapter(LIST_TYPE: Int, val listener: AppClickListener, val context: C
     }
 
 
-    override fun onCreateViewHolder(parent: ViewGroup?, viewType: Int): AppsViewHolder =
-            AppsViewHolder(LayoutInflater.from(parent?.context).inflate(layoutId, parent, false))
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AppsViewHolder =
+            AppsViewHolder(LayoutInflater.from(parent.context).inflate(layoutId, parent, false))
 
 
     override fun getItemCount(): Int = listOfFilteredApps.size
 
-    override fun onBindViewHolder(holder: AppsViewHolder?, position: Int) {
-        holder?.bind(position)
+    override fun onBindViewHolder(holder: AppsViewHolder, position: Int) {
+        holder.bind(position)
     }
 
     private var isNightMode: Boolean = false
