@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer name="pref_transparency_max">100</integer>
+    <integer name="pref_transparency_default">50</integer>
+    <integer name="pref_transparency_min">0</integer>
+</resources>

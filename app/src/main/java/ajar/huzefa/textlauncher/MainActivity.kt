@@ -1,11 +1,14 @@
 package ajar.huzefa.textlauncher
 
-import android.content.Context
-import android.content.Intent
-import android.content.SharedPreferences
+import ajar.huzefa.textlauncher.Constants.BROADCAST_APPS_LOADED
+import ajar.huzefa.textlauncher.Constants.EXTRA_SCROLL_Y
+import ajar.huzefa.textlauncher.Constants.EXTRA_SEARCH_TEXT
+import android.content.*
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import android.support.v4.app.ActivityOptionsCompat
+import android.support.v4.content.ContextCompat
 import android.support.v4.widget.DrawerLayout
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.preference.PreferenceFragmentCompat
@@ -13,11 +16,12 @@ import android.support.v7.widget.LinearLayoutManager
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
+import android.view.KeyEvent
 import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
 import android.view.inputmethod.InputMethodManager
-import android.widget.CompoundButton
+import android.widget.TextView
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexboxLayoutManager
 import com.google.android.flexbox.JustifyContent
@@ -25,40 +29,63 @@ import kotlinx.android.synthetic.main.activity_main.*
 import kotlin.math.roundToInt
 
 
-class MainActivity : AppCompatActivity(), AppsAdapter.AppClickListener, TextWatcher, View.OnClickListener, DrawerLayout.DrawerListener, CompoundButton.OnCheckedChangeListener, SharedPreferences.OnSharedPreferenceChangeListener {
-    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
-        if (sharedPreferences == Launcher.getInstance(this).preferences) {
-            if (getString(R.string.pref_night_mode_key).equals(key)) {
-                setColors()
-                notifyAdapters()
-            } else if (getString(R.string.pref_linear_layout_key).equals(key)) {
-                setLayout()
+class MainActivity : AppCompatActivity(), AppsAdapter.AppClickListener, TextWatcher, View.OnClickListener, DrawerLayout.DrawerListener, SharedPreferences.OnSharedPreferenceChangeListener, TextView.OnEditorActionListener {
+
+    override fun onAppUninstall(app: App?) {
+        if (app != null) {
+            val packageURI = Uri.parse("package:${app.packageName}")
+            val uninstallIntent = Intent(Intent.ACTION_UNINSTALL_PACKAGE, packageURI)
+            startActivity(uninstallIntent)
+
+        }
+    }
+
+    override fun onEditorAction(p0: TextView?, p1: Int, p2: KeyEvent?): Boolean {
+        val listOfFilteredApps = appsAdapter?.listOfFilteredApps
+        return if (listOfFilteredApps != null && listOfFilteredApps.isNotEmpty()) {
+            launchApp(listOfFilteredApps[0])
+            true
+        } else false
+    }
+
+    private val appsRefreshedReceiver: BroadcastReceiver by lazy {
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                Log.d(TAG, "appsRefreshedReceiver onReceive")
+                if (context != null && intent != null) {
+                    Log.d(TAG, "appsRefreshedReceiver action ${intent.action}")
+                    if (intent.action == Constants.BROADCAST_APPS_LOADED) {
+                        Log.d(TAG, "appsRefreshedReceiver notifyingAdapters")
+                        refreshAdapters()
+                    }
+                } else {
+                    Log.d(TAG, "appsRefreshedReceiver context or intent null")
+                }
             }
         }
     }
 
-    override fun onCheckedChanged(buttonView: CompoundButton?, isChecked: Boolean) {
-//        if (buttonView == switchNightMode) {
-//            if (isChecked) {
-//                Launcher.getInstance(this).preferences.edit().putBoolean(getString(R.string.pref_night_mode_key), true).apply()
-//            } else {
-//                Launcher.getInstance(this).preferences.edit().putBoolean(getString(R.string.pref_night_mode_key), false).apply()
-//            }
-//            setColors()
-//            notifyAdapters()
-//        } else if (buttonView == switchLinearLayout) {
-//            if (isChecked) {
-//                Launcher.getInstance(this).preferences.edit().putBoolean(getString(R.string.pref_linear_layout_key), true).apply()
-//            } else {
-//                Launcher.getInstance(this).preferences.edit().putBoolean(getString(R.string.pref_linear_layout_key), false).apply()
-//            }
-//            setLayout()
-//        }
+    override fun onResume() {
+        Log.d(TAG, "onResume Called")
+        super.onResume()
+        Launcher.getInstance(applicationContext).refreshApps(applicationContext)
     }
 
-    private fun notifyAdapters() {
-        appsAdapter?.notifyDataSetChanged()
-        hiddenAppsAdapter?.notifyDataSetChanged()
+    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
+        if (sharedPreferences == Launcher.getInstance(this).preferences) {
+            if (getString(R.string.pref_night_mode_key) == key || getString(R.string.pref_wallpaper_key) == key) {
+                Launcher.getInstance(this).restartActivity(this,
+                        if (areHiddenAppsLoaded) Constants.ACTION_LOAD_HIDDEN_APPS
+                        else null, arrayOf(
+                        Pair(Constants.EXTRA_SCROLL_Y, rvAppsList.computeVerticalScrollOffset().toString()),
+                        Pair(Constants.EXTRA_SEARCH_TEXT, etSearch.text.toString()))
+                )
+            } else if (getString(R.string.pref_linear_layout_key) == key) {
+                setLayout()
+            } else if (getString(R.string.pref_transparency_key) == key) {
+                setColors()
+            }
+        }
     }
 
     private fun refreshAdapters() {
@@ -70,19 +97,34 @@ class MainActivity : AppCompatActivity(), AppsAdapter.AppClickListener, TextWatc
 
     private fun setColors() {
         isNightMode = Launcher.getInstance(this).preferences.getBoolean(getString(R.string.pref_night_mode_key), resources.getBoolean(R.bool.pref_night_mode_default))
+
+        val alpha = (255 - (Launcher.getInstance(this).preferences.getInt(getString(R.string.pref_transparency_key), resources.getInteger(R.integer.pref_transparency_default)) * 2.55)).roundToInt()
+
+
         if (isNightMode) {
-            mainActivity.setBackgroundColor(Color.BLACK)
-            // leftDrawer.setBackgroundColor(Color.parseColor(getString(R.string.color_almost_black)))
-            rightDrawer.setBackgroundColor(Color.parseColor(getString(R.string.color_almost_black)))
+            mainActivity.setBackgroundColor(Color.argb(alpha, 0, 0, 0))
+            fabSearch.setColorFilter(Color.WHITE)
+            fabSettings.setColorFilter(Color.WHITE)
+            fabCloseSettings.setColorFilter(Color.WHITE)
+//            leftDrawer.setBackgroundColor(Color.parseColor(getString(R.string.color_almost_black)))
+            settingsFragmentContainer.setBackgroundColor(ContextCompat.getColor(this, R.color.translucentBlack))
+            rightDrawer.setBackgroundColor(ContextCompat.getColor(this, R.color.translucentBlack))
         } else {
-            mainActivity.setBackgroundColor(Color.WHITE)
-            // leftDrawer.setBackgroundColor(Color.parseColor(getString(R.string.color_almost_white)))
-            rightDrawer.setBackgroundColor(Color.parseColor(getString(R.string.color_almost_white)))
+            mainActivity.setBackgroundColor(Color.argb(alpha, 255, 255, 255))
+            fabSearch.setColorFilter(Color.BLACK)
+            fabSettings.setColorFilter(Color.BLACK)
+            fabCloseSettings.setColorFilter(Color.BLACK)
+//            leftDrawer.setBackgroundColor(Color.parseColor(getString(R.string.color_almost_white)))
+            settingsFragmentContainer.setBackgroundColor(ContextCompat.getColor(this, R.color.translucentWhite))
+            rightDrawer.setBackgroundColor(ContextCompat.getColor(this, R.color.translucentWhite))
         }
+//        Launcher.getInstance(this).setTheme(this)
+
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        unregisterReceiver(appsRefreshedReceiver)
         Launcher.getInstance(this).preferences.unregisterOnSharedPreferenceChangeListener(this)
     }
 
@@ -104,7 +146,6 @@ class MainActivity : AppCompatActivity(), AppsAdapter.AppClickListener, TextWatc
     }
 
     override fun onAppHiddenOrShown(app: App?) {
-        Log.d(TAG, "onAppHiddenOrShown: $app")
         refreshAdapters()
     }
 
@@ -119,36 +160,18 @@ class MainActivity : AppCompatActivity(), AppsAdapter.AppClickListener, TextWatc
                         closeKeyboard()
                     }
                 }
+                fabSearch -> {
+                    startSearchMode()
+                }
+                fabSettings -> {
+                    settingsFragmentContainer.visibility = VISIBLE
+                }
+                fabCloseSettings -> {
+                    settingsFragmentContainer.visibility = GONE
+                }
             }
         }
     }
-
-//    inner class FlingDetector : GestureDetector.SimpleOnGestureListener() {
-//
-//
-//        private fun isHorizontal(y1: Float, y2: Float) =
-//                (abs(y1 - y2) < HORIZONTAL_SENSITIVITY)
-//
-//
-//        override fun onFling(e1: MotionEvent?, e2: MotionEvent?, velocityX: Float, velocityY: Float): Boolean {
-//
-//            if (e2 != null && e1 != null) {
-//                if (isHorizontal(e1.y, e2.y))
-//                    if (e2.x - e1.x > SENSITIVITY) {
-//                        showSearchBar()
-//                        openKeyboard()
-//                        return true
-//                    } else if (e1.x - e2.x > SENSITIVITY) {
-//                        clearSearchText()
-//                        hideSearchBar()
-//                        closeKeyboard()
-//                        return true
-//                    }
-//            }
-//
-//            return super.onFling(e1, e2, velocityX, velocityY)
-//        }
-//    }
 
     override fun afterTextChanged(s: Editable?) {
         if (s != null) {
@@ -166,26 +189,20 @@ class MainActivity : AppCompatActivity(), AppsAdapter.AppClickListener, TextWatc
 
     private fun showSearchBar() {
         flSearchBar.visibility = VISIBLE
+        fabSearch.visibility = GONE
+        fabSettings.visibility = GONE
     }
 
     private fun hideSearchBar() {
         flSearchBar.visibility = GONE
+        fabSearch.visibility = VISIBLE
+        fabSettings.visibility = VISIBLE
     }
 
     private fun clearSearchText() {
         etSearch.text.clear()
         tvClearSearchText.text = getString(R.string.close_small)
     }
-
-//    fun adjustRecyclerViewConstraints(attachToTop: Boolean) {
-//        var params = rvAppsList.layoutParams as ConstraintLayout.LayoutParams
-//        params = ConstraintLayout.LayoutParams(params)
-//        if (attachToTop)
-//            params.topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-//        else
-//            params.topToTop = ConstraintLayout.NO_ID
-//        rvAppsList.layoutParams = params
-//    }
 
     private fun openKeyboard() {
         val inputManager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
@@ -196,6 +213,12 @@ class MainActivity : AppCompatActivity(), AppsAdapter.AppClickListener, TextWatc
     private fun closeKeyboard() {
         val inputManager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         inputManager.hideSoftInputFromWindow(currentFocus.windowToken, InputMethodManager.HIDE_NOT_ALWAYS)
+    }
+
+    private fun launchApp(app: App) {
+        app.increaseLaunchCountAndTextSize()
+        startActivity(packageManager.getLaunchIntentForPackage(app.packageName))
+        closeKeyboard()
     }
 
     override fun onAppClick(position: Int, app: App?, view: View?) {
@@ -214,16 +237,16 @@ class MainActivity : AppCompatActivity(), AppsAdapter.AppClickListener, TextWatc
     private var appsAdapter: AppsAdapter? = null
     private var hiddenAppsAdapter: AppsAdapter? = null
 
-//    private lateinit var mDetector: GestureDetectorCompat
-//    private lateinit var mFlingDetector: FlingDetector
-
     private fun loadApps() {
-        rvAppsList.adapter = null
+
         var filterString: String? = ""
 
         if (appsAdapter != null) {
             etSearch.removeTextChangedListener(appsAdapter)
             filterString = appsAdapter?.filterString
+        }
+        if (filterString.isNullOrBlank()) {
+            filterString = etSearch.text.toString()
         }
         if (isLinearLayout) {
             rvAppsList.layoutManager = LinearLayoutManager(this)
@@ -256,6 +279,8 @@ class MainActivity : AppCompatActivity(), AppsAdapter.AppClickListener, TextWatc
         Log.d(TAG, "Filter String is $filterString")
         rvAppsList.adapter = appsAdapter
         etSearch.addTextChangedListener(appsAdapter)
+        Log.d(TAG, "Apps Adapter is ready")
+
     }
 
     private fun loadHiddenApps() {
@@ -276,55 +301,63 @@ class MainActivity : AppCompatActivity(), AppsAdapter.AppClickListener, TextWatc
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Launcher.getInstance(this).setTheme(this)
         setContentView(R.layout.activity_main)
-
         setColors()
         setLayout()
-        //setupKeyboardToggleListeners()
 
-//        switchNightMode.isChecked = isNightMode
-//        switchNightMode.setOnCheckedChangeListener(this)
-//        switchLinearLayout.isChecked = isLinearLayout
-//        switchLinearLayout.setOnCheckedChangeListener(this)
+        registerReceiver(appsRefreshedReceiver, IntentFilter(BROADCAST_APPS_LOADED))
 
-        etSearch.addTextChangedListener(this)
-        // mFlingDetector = FlingDetector()
-        // mDetector = GestureDetectorCompat(this, mFlingDetector)
         hideSearchBar()
-        mainActivity.addDrawerListener(this)
+
+        if (intent != null) {
+            if (intent.hasExtra(EXTRA_SEARCH_TEXT)) {
+                etSearch.setText(intent.getStringExtra(EXTRA_SEARCH_TEXT))
+                intent.removeExtra(EXTRA_SEARCH_TEXT)
+            }
+        }
+
         loadApps()
 
-        Launcher.getInstance(this).preferences.registerOnSharedPreferenceChangeListener(this)
+        if (intent != null) {
+            if (intent.action != null && intent.action == Constants.ACTION_LOAD_HIDDEN_APPS) {
+                loadHiddenApps()
+            }
+            if (intent.hasExtra(EXTRA_SCROLL_Y)) {
+                try {
+                    rvAppsList.smoothScrollBy(0, intent.getStringExtra(EXTRA_SCROLL_Y).toInt())
+                    intent.removeExtra(EXTRA_SCROLL_Y)
+                } catch (e: NullPointerException) {
+                    e.printStackTrace()
+                    // rv view.getwidth, view is null
+                }
+            }
+        }
 
-        leftDrawer.setOnTouchListener { _, _ -> true }
+        if (savedInstanceState != null) {
+            if (!areHiddenAppsLoaded) {
+                if (savedInstanceState.getBoolean(Constants.ACTION_LOAD_HIDDEN_APPS, false)) {
+                    loadHiddenApps()
+                }
+            }
+        }
+
+
+
+        etSearch.addTextChangedListener(this)
+        etSearch.setOnEditorActionListener(this)
+        mainActivity.addDrawerListener(this)
+        Launcher.getInstance(this).preferences.registerOnSharedPreferenceChangeListener(this)
+        settingsFragmentContainer.setOnTouchListener { _, _ -> true }
 
     }
 
-//    private fun setupKeyboardToggleListeners() {
-//        mainActivity.viewTreeObserver.addOnGlobalLayoutListener({
-//            val r = Rect()
-//            mainActivity.getWindowVisibleDisplayFrame(r)
-//            val screenHeight = mainActivity.rootView.height
-//
-//            // r.bottom is the position above soft keypad or device button.
-//            // if keypad is shown, the r.bottom is smaller than that before.
-//            val keypadHeight = screenHeight - r.bottom
-//
-//            Log.d(TAG, "keypadHeight = $keypadHeight")
-//
-//            if (keypadHeight > screenHeight * 0.15) { // 0.15 ratio is perhaps enough to determine keypad height.
-//                // keyboard is opened
-////                adjustRecyclerViewConstraints(false)
-//                window.addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN)
-//                window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-//            } else {
-//                // keyboard is closed
-////                adjustRecyclerViewConstraints(true)
-//                window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-//                window.clearFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN)
-//            }
-//        })
-//    }
+    override fun onSaveInstanceState(outState: Bundle?) {
+        super.onSaveInstanceState(outState)
+        outState?.putBoolean(Constants.ACTION_LOAD_HIDDEN_APPS, areHiddenAppsLoaded)
+
+
+    }
 
     private fun setLayout() {
         isLinearLayout = Launcher.getInstance(this).preferences.getBoolean(getString(R.string.pref_linear_layout_key), resources.getBoolean(R.bool.pref_linear_layout_default))
@@ -344,66 +377,44 @@ class MainActivity : AppCompatActivity(), AppsAdapter.AppClickListener, TextWatc
         if (Intent.ACTION_MAIN == intent.action) {
             val alreadyOnHome = intent.flags and Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT != Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT
             if (alreadyOnHome) {
-                if (mainActivity.isDrawerOpen(leftDrawer))
-                    mainActivity.closeDrawer(leftDrawer)
-                if (mainActivity.isDrawerOpen(rightDrawer))
-                    mainActivity.closeDrawer(rightDrawer)
-                if (flSearchBar.visibility == VISIBLE) {
-                    hideSearchBar()
-                    closeKeyboard()
-                } else {
-                    showSearchBar()
-                    openKeyboard()
-                }
+                handleHomeAndBack(true)
             }
         }
     }
 
-    override fun onBackPressed() {
-        if (mainActivity.isDrawerOpen(leftDrawer))
-            mainActivity.closeDrawer(leftDrawer)
-        else if (mainActivity.isDrawerOpen(rightDrawer))
-            mainActivity.closeDrawer(rightDrawer)
-        else if (flSearchBar.visibility == VISIBLE)
-            hideSearchBar()
+    private fun startSearchMode() {
+        showSearchBar()
+        openKeyboard()
     }
 
-    class LauncherSettingsFragment : PreferenceFragmentCompat(), SharedPreferences.OnSharedPreferenceChangeListener {
+    private fun stopSearchMode() {
+        hideSearchBar()
+        closeKeyboard()
+    }
 
-        override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
+    private fun handleHomeAndBack(shouldStartSearchMode: Boolean) {
 
-            if (isAdded)
-                if (getString(R.string.pref_night_mode_key).equals(key)) {
-                    val isNightMode = sharedPreferences?.getBoolean(key, resources.getBoolean(R.bool.pref_night_mode_default))
-                    if (isNightMode != null)
-                        if (isNightMode) {
-                            // TODO()
-                        } else {
-                            // TODO()
-                        }
-                }
-
+        when {
+            settingsFragmentContainer.visibility == VISIBLE -> settingsFragmentContainer.visibility = GONE
+            mainActivity.isDrawerOpen(rightDrawer) -> mainActivity.closeDrawer(rightDrawer)
+            flSearchBar.visibility == VISIBLE -> stopSearchMode()
+            shouldStartSearchMode -> startSearchMode()
         }
+
+    }
+
+    override fun onBackPressed() {
+        handleHomeAndBack(false)
+    }
+
+    class LauncherSettingsFragment : PreferenceFragmentCompat() {
+
 
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             if (isAdded) {
                 preferenceManager.sharedPreferencesName = Constants.SHARED_PREFERENCES_LAUNCHER_SETTINGS
                 addPreferencesFromResource(R.xml.launcher_preferences_fragment)
-                preferenceManager.sharedPreferences
             }
-        }
-
-        override fun onCreate(savedInstanceState: Bundle?) {
-            super.onCreate(savedInstanceState)
-            if (isAdded)
-                preferenceScreen.sharedPreferences
-                        .registerOnSharedPreferenceChangeListener(this)
-        }
-
-        override fun onDestroy() {
-            super.onDestroy()
-            if (isAdded) preferenceScreen.sharedPreferences
-                    .unregisterOnSharedPreferenceChangeListener(this)
         }
 
 

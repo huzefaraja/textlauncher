@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?><!--suppress ALL -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
 
     >
@@ -7,6 +7,7 @@
         android:id="@+id/pref_night_mode"
         android:defaultValue="@bool/pref_night_mode_default"
         android:key="@string/pref_night_mode_key"
+        android:summary="The app will restart for changes to take effect."
         android:title="@string/pref_night_mode_label" />
 
 
@@ -14,6 +15,21 @@
         android:id="@+id/pref_linear_layout"
         android:defaultValue="@bool/pref_linear_layout_default"
         android:key="@string/pref_linear_layout_key"
-        android:title="@string/pref_linear_layout_layout" />
+        android:title="@string/pref_linear_layout_label" />
+
+    <SwitchPreferenceCompat
+        android:id="@+id/pref_wallpaper"
+        android:defaultValue="@bool/pref_wallpaper_default"
+        android:key="@string/pref_wallpaper_key"
+        android:title="@string/pref_wallpaper_label" />
+
+
+    <SeekBarPreference
+        android:id="@+id/pref_transparency"
+        android:defaultValue="@integer/pref_transparency_default"
+        android:key="@string/pref_transparency_key"
+        android:max="@integer/pref_transparency_max"
+        android:min="@integer/pref_transparency_min"
+        android:title="@string/pref_transparency_label" />
 
 </PreferenceScreen>

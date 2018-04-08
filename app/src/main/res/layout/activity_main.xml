@@ -4,7 +4,6 @@
     android:id="@+id/mainActivity"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#fff"
     android:fitsSystemWindows="true">
 
     <android.support.constraint.ConstraintLayout
@@ -43,7 +42,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="#e6ffffff"
-                android:hint="Search..."
+                android:hint="@string/search_hint"
+                android:imeOptions="flagNoExtractUi|actionSearch"
                 android:inputType="text"
                 android:padding="16dp"
                 android:textColor="#111"
@@ -62,41 +62,95 @@
 
         </android.support.v7.widget.CardView>
 
-    </android.support.constraint.ConstraintLayout>
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/fabSearch"
+            style="@style/fab_style"
+            android:onClick="onClick"
+            android:src="@android:drawable/ic_menu_search"
+            app:backgroundTint="@android:color/transparent"
+            app:borderWidth="0dp"
+            app:elevation="0dp"
+            app:fabSize="auto"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="1"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="1"
+            app:pressedTranslationZ="1dp" />
 
-    <LinearLayout
-        android:id="@+id/leftDrawer"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_gravity="start"
-        android:background="#efff"
-        android:orientation="vertical"
-        android:padding="16dp">
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/fabSettings"
+            style="@style/fab_style"
+            android:onClick="onClick"
+            android:src="@android:drawable/ic_menu_preferences"
+            app:backgroundTint="@android:color/transparent"
+            app:borderWidth="0dp"
+            app:elevation="0dp"
+            app:fabSize="auto"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="1"
+            app:pressedTranslationZ="1dp" />
 
-        <fragment
-            android:name="ajar.huzefa.textlauncher.MainActivity$LauncherSettingsFragment"
+        <android.support.constraint.ConstraintLayout
+            android:id="@+id/settingsFragmentContainer"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-        <!--<Switch-->
-        <!--android:id="@+id/switchNightMode"-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:layout_marginTop="16dp"-->
-        <!--android:text="@string/pref_night_mode_label"-->
-        <!--android:textAppearance="@android:style/TextAppearance.Large"-->
-        <!--android:textColor="@color/colorAccent" />-->
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="gone">
 
-        <!--<Switch-->
-        <!--android:id="@+id/switchLinearLayout"-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:layout_marginTop="16dp"-->
-        <!--android:text="@string/pref_linear_layout_layout"-->
-        <!--android:textAppearance="@android:style/TextAppearance.Large"-->
-        <!--android:textColor="@color/colorAccent" />-->
+            <TextView
+                android:id="@+id/tvPref"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="16dp"
+                android:background="@android:color/transparent"
+                android:gravity="center"
+                android:lines="1"
+                android:text="@string/preferences"
+                android:textAppearance="@style/TextAppearance.AppCompat.Large"
+                android:textColor="?colorAccent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
 
+            <fragment
+                android:id="@+id/launcherSettingsFragment"
+                android:name="ajar.huzefa.textlauncher.MainActivity$LauncherSettingsFragment"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:tag="Settings"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/tvPref" />
 
-    </LinearLayout>
+            <android.support.design.widget.FloatingActionButton
+                android:id="@+id/fabCloseSettings"
+                style="@style/fab_style"
+                android:onClick="onClick"
+                android:src="@android:drawable/ic_menu_revert"
+                app:backgroundTint="@android:color/transparent"
+                app:borderWidth="0dp"
+                app:elevation="0dp"
+                app:fabSize="auto"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias="1"
+                app:pressedTranslationZ="1dp" />
+
+        </android.support.constraint.ConstraintLayout>
+
+    </android.support.constraint.ConstraintLayout>
 
     <LinearLayout
         android:id="@+id/rightDrawer"
@@ -119,7 +173,7 @@
             android:lines="1"
             android:text="@string/hidden_apps"
             android:textAppearance="@style/TextAppearance.AppCompat.Large"
-            android:textColor="@color/colorAccent" />
+            android:textColor="?colorAccent" />
 
         <android.support.v7.widget.RecyclerView
             android:id="@+id/rvHiddenAppsList"

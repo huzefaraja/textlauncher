@@ -23,8 +23,6 @@ class AppsAdapter(LIST_TYPE: Int, val listener: AppClickListener, val context: C
 
     }
 
-    val TAG = AppsAdapter::class.java.simpleName
-
     init {
         listOfFilteredApps = ArrayList()
         refresh()
@@ -41,7 +39,7 @@ class AppsAdapter(LIST_TYPE: Int, val listener: AppClickListener, val context: C
     }
 
     fun refresh() {
-        Log.d(TAG, "Refreshing adapter. Filter String: $filterString")
+        Log.d(Companion.TAG, "Refreshing adapter. Filter String: $filterString")
         if (filterString.isBlank()) {
             val list = listOfFilteredApps as ArrayList
             list.clear()
@@ -52,7 +50,7 @@ class AppsAdapter(LIST_TYPE: Int, val listener: AppClickListener, val context: C
         notifyDataSetChanged()
     }
 
-    fun filterList(searchText: String) {
+    private fun filterList(searchText: String) {
         filterString = searchText
         refresh()
     }
@@ -63,6 +61,7 @@ class AppsAdapter(LIST_TYPE: Int, val listener: AppClickListener, val context: C
     interface AppClickListener {
         fun onAppClick(position: Int, app: App?, view: View?)
         fun onAppHiddenOrShown(app: App?)
+        fun onAppUninstall(app: App?)
     }
 
 
@@ -82,8 +81,7 @@ class AppsAdapter(LIST_TYPE: Int, val listener: AppClickListener, val context: C
         override fun onMenuItemClick(item: MenuItem?): Boolean {
             if (item != null) {
                 when (item.itemId) {
-                    R.id.action_uninstall -> {
-                    }
+                    R.id.action_uninstall -> listener.onAppUninstall(app)
                     R.id.action_info -> app?.openAppInfo(itemView.context)
                     R.id.action_hide -> {
                         if (item.title == itemView.context.getString(R.string.hide)) {
@@ -150,6 +148,11 @@ class AppsAdapter(LIST_TYPE: Int, val listener: AppClickListener, val context: C
 
         }
 
+    }
+
+    companion object {
+        @JvmField
+        val TAG: String = AppsAdapter::class.java.simpleName
     }
 
 
